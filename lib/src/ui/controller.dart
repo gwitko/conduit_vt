@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:meta/meta.dart';
-import 'package:xterm/src/base/disposable.dart';
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/buffer/line.dart';
-import 'package:xterm/src/core/buffer/range.dart';
-import 'package:xterm/src/core/buffer/range_block.dart';
-import 'package:xterm/src/core/buffer/range_line.dart';
-import 'package:xterm/src/ui/pointer_input.dart';
-import 'package:xterm/src/ui/selection_mode.dart';
+import 'package:conduit_vt/src/base/disposable.dart';
+import 'package:conduit_vt/src/core/buffer/cell_offset.dart';
+import 'package:conduit_vt/src/core/buffer/line.dart';
+import 'package:conduit_vt/src/core/buffer/range.dart';
+import 'package:conduit_vt/src/core/buffer/range_block.dart';
+import 'package:conduit_vt/src/core/buffer/range_line.dart';
+import 'package:conduit_vt/src/ui/pointer_input.dart';
+import 'package:conduit_vt/src/ui/selection_mode.dart';
 
 class TerminalController with ChangeNotifier {
   TerminalController({
     SelectionMode selectionMode = SelectionMode.line,
     PointerInputs pointerInputs = const PointerInputs({PointerInput.tap}),
     bool suspendPointerInput = false,
-  })  : _selectionMode = selectionMode,
-        _pointerInputs = pointerInputs,
-        _suspendPointerInputs = suspendPointerInput;
+  }) : _selectionMode = selectionMode,
+       _pointerInputs = pointerInputs,
+       _suspendPointerInputs = suspendPointerInput;
 
   CellAnchor? _selectionBase;
   CellAnchor? _selectionExtent;
@@ -128,12 +128,7 @@ class TerminalController with ChangeNotifier {
     required CellAnchor p2,
     required Color color,
   }) {
-    final highlight = TerminalHighlight(
-      this,
-      p1: p1,
-      p2: p2,
-      color: color,
-    );
+    final highlight = TerminalHighlight(this, p1: p1, p2: p2, color: color);
 
     _highlights.add(highlight);
     notifyListeners();

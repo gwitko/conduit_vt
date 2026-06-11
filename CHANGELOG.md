@@ -1,3 +1,9 @@
+## [0.1.0] - 2026-06-11
+* Rename the fork package to `conduit_vt`.
+* Add transient terminal cell overlays for Conduit predictive echo.
+* Add cursor position accessors for Conduit terminal integrations.
+* Remove stale `dart_code_metrics` dev tooling.
+
 ## [4.0.0] - 2024-02-27
 * Update for Flutter 3.19 [#190]. Thanks [@domesticmouse].
 * Fix designate charset logic [#186]. Thanks [@djnalluri].

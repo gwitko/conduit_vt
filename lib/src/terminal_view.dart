@@ -2,23 +2,24 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/input/keys.dart';
-import 'package:xterm/src/terminal.dart';
-import 'package:xterm/src/ui/controller.dart';
-import 'package:xterm/src/ui/cursor_type.dart';
-import 'package:xterm/src/ui/custom_text_edit.dart';
-import 'package:xterm/src/ui/gesture/gesture_handler.dart';
-import 'package:xterm/src/ui/input_map.dart';
-import 'package:xterm/src/ui/keyboard_listener.dart';
-import 'package:xterm/src/ui/keyboard_visibility.dart';
-import 'package:xterm/src/ui/render.dart';
-import 'package:xterm/src/ui/scroll_handler.dart';
-import 'package:xterm/src/ui/shortcut/actions.dart';
-import 'package:xterm/src/ui/shortcut/shortcuts.dart';
-import 'package:xterm/src/ui/terminal_text_style.dart';
-import 'package:xterm/src/ui/terminal_theme.dart';
-import 'package:xterm/src/ui/themes.dart';
+import 'package:conduit_vt/src/core/buffer/cell_offset.dart';
+import 'package:conduit_vt/src/core/input/keys.dart';
+import 'package:conduit_vt/src/terminal.dart';
+import 'package:conduit_vt/src/ui/cell_overlay.dart';
+import 'package:conduit_vt/src/ui/controller.dart';
+import 'package:conduit_vt/src/ui/cursor_type.dart';
+import 'package:conduit_vt/src/ui/custom_text_edit.dart';
+import 'package:conduit_vt/src/ui/gesture/gesture_handler.dart';
+import 'package:conduit_vt/src/ui/input_map.dart';
+import 'package:conduit_vt/src/ui/keyboard_listener.dart';
+import 'package:conduit_vt/src/ui/keyboard_visibility.dart';
+import 'package:conduit_vt/src/ui/render.dart';
+import 'package:conduit_vt/src/ui/scroll_handler.dart';
+import 'package:conduit_vt/src/ui/shortcut/actions.dart';
+import 'package:conduit_vt/src/ui/shortcut/shortcuts.dart';
+import 'package:conduit_vt/src/ui/terminal_text_style.dart';
+import 'package:conduit_vt/src/ui/terminal_theme.dart';
+import 'package:conduit_vt/src/ui/themes.dart';
 
 class TerminalView extends StatefulWidget {
   const TerminalView(
@@ -32,6 +33,7 @@ class TerminalView extends StatefulWidget {
     this.scrollController,
     this.autoResize = true,
     this.backgroundOpacity = 1,
+    this.overlays = const <TerminalCellOverlay>[],
     this.focusNode,
     this.autofocus = false,
     this.onTapUp,
@@ -76,6 +78,9 @@ class TerminalView extends StatefulWidget {
   /// Opacity of the terminal background. Set to 0 to make the terminal
   /// background transparent.
   final double backgroundOpacity;
+
+  /// Transient cells painted over the terminal buffer without mutating it.
+  final List<TerminalCellOverlay> overlays;
 
   /// An optional focus node to use as the focus node for this widget.
   final FocusNode? focusNode;
@@ -162,7 +167,8 @@ class TerminalViewState extends State<TerminalView> {
 
   late ScrollController _scrollController;
 
-  RenderTerminal get renderTerminal => _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
+  RenderTerminal get renderTerminal =>
+      _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
 
   @override
   void initState() {
@@ -230,6 +236,7 @@ class TerminalViewState extends State<TerminalView> {
           textStyle: widget.textStyle,
           textScaler: widget.textScaler ?? MediaQuery.textScalerOf(context),
           theme: widget.theme,
+          overlays: widget.overlays,
           focusNode: _focusNode,
           cursorType: widget.cursorType,
           alwaysShowCursor: widget.alwaysShowCursor,
@@ -264,7 +271,8 @@ class TerminalViewState extends State<TerminalView> {
         onAction: (action) {
           _scrollToBottom();
           // Android sends TextInputAction.newline when the user presses the virtual keyboard's enter key.
-          if (action == TextInputAction.done || action == TextInputAction.newline) {
+          if (action == TextInputAction.done ||
+              action == TextInputAction.newline) {
             widget.terminal.keyInput(TerminalKey.enter);
           }
         },
@@ -290,29 +298,27 @@ class TerminalViewState extends State<TerminalView> {
       child: child,
     );
 
-    child = KeyboardVisibilty(
-      onKeyboardShow: _onKeyboardShow,
-      child: child,
-    );
+    child = KeyboardVisibilty(onKeyboardShow: _onKeyboardShow, child: child);
 
     child = TerminalGestureHandler(
       terminalView: this,
       terminalController: _controller,
       onTapUp: _onTapUp,
       onTapDown: _onTapDown,
-      onSecondaryTapDown: widget.onSecondaryTapDown != null ? _onSecondaryTapDown : null,
-      onSecondaryTapUp: widget.onSecondaryTapUp != null ? _onSecondaryTapUp : null,
+      onSecondaryTapDown:
+          widget.onSecondaryTapDown != null ? _onSecondaryTapDown : null,
+      onSecondaryTapUp:
+          widget.onSecondaryTapUp != null ? _onSecondaryTapUp : null,
       readOnly: widget.readOnly,
       child: child,
     );
 
-    child = MouseRegion(
-      cursor: widget.mouseCursor,
-      child: child,
-    );
+    child = MouseRegion(cursor: widget.mouseCursor, child: child);
 
     child = Container(
-      color: widget.theme.background.withOpacity(widget.backgroundOpacity),
+      color: widget.theme.background.withValues(
+        alpha: widget.theme.background.a * widget.backgroundOpacity,
+      ),
       padding: widget.padding,
       child: child,
     );
@@ -333,7 +339,8 @@ class TerminalViewState extends State<TerminalView> {
   }
 
   Rect get globalCursorRect {
-    return renderTerminal.localToGlobal(renderTerminal.cursorOffset) & renderTerminal.cellSize;
+    return renderTerminal.localToGlobal(renderTerminal.cursorOffset) &
+        renderTerminal.cellSize;
   }
 
   void _onTapUp(TapUpDetails details) {
@@ -457,6 +464,7 @@ class _TerminalView extends LeafRenderObjectWidget {
     required this.textStyle,
     required this.textScaler,
     required this.theme,
+    required this.overlays,
     required this.focusNode,
     required this.cursorType,
     required this.alwaysShowCursor,
@@ -480,6 +488,8 @@ class _TerminalView extends LeafRenderObjectWidget {
 
   final TerminalTheme theme;
 
+  final List<TerminalCellOverlay> overlays;
+
   final FocusNode focusNode;
 
   final TerminalCursorType cursorType;
@@ -501,6 +511,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       textStyle: textStyle,
       textScaler: textScaler,
       theme: theme,
+      overlays: overlays,
       focusNode: focusNode,
       cursorType: cursorType,
       alwaysShowCursor: alwaysShowCursor,
@@ -520,6 +531,7 @@ class _TerminalView extends LeafRenderObjectWidget {
       ..textStyle = textStyle
       ..textScaler = textScaler
       ..theme = theme
+      ..overlays = overlays
       ..focusNode = focusNode
       ..cursorType = cursorType
       ..alwaysShowCursor = alwaysShowCursor

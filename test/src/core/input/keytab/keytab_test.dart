@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:xterm/src/core/input/keys.dart';
-import 'package:xterm/src/core/input/keytab/keytab.dart';
+import 'package:conduit_vt/src/core/input/keys.dart';
+import 'package:conduit_vt/src/core/input/keytab/keytab.dart';
 
 void main() {
   group('Keytab.find()', () {

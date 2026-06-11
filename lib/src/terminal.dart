@@ -1,24 +1,24 @@
 import 'dart:math' show max;
 
-import 'package:xterm/src/base/observable.dart';
-import 'package:xterm/src/core/buffer/buffer.dart';
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/buffer/line.dart';
-import 'package:xterm/src/core/cursor.dart';
-import 'package:xterm/src/core/escape/emitter.dart';
-import 'package:xterm/src/core/escape/handler.dart';
-import 'package:xterm/src/core/escape/parser.dart';
-import 'package:xterm/src/core/input/handler.dart';
-import 'package:xterm/src/core/input/keys.dart';
-import 'package:xterm/src/core/mouse/button.dart';
-import 'package:xterm/src/core/mouse/button_state.dart';
-import 'package:xterm/src/core/mouse/handler.dart';
-import 'package:xterm/src/core/mouse/mode.dart';
-import 'package:xterm/src/core/platform.dart';
-import 'package:xterm/src/core/state.dart';
-import 'package:xterm/src/core/tabs.dart';
-import 'package:xterm/src/utils/ascii.dart';
-import 'package:xterm/src/utils/circular_buffer.dart';
+import 'package:conduit_vt/src/base/observable.dart';
+import 'package:conduit_vt/src/core/buffer/buffer.dart';
+import 'package:conduit_vt/src/core/buffer/cell_offset.dart';
+import 'package:conduit_vt/src/core/buffer/line.dart';
+import 'package:conduit_vt/src/core/cursor.dart';
+import 'package:conduit_vt/src/core/escape/emitter.dart';
+import 'package:conduit_vt/src/core/escape/handler.dart';
+import 'package:conduit_vt/src/core/escape/parser.dart';
+import 'package:conduit_vt/src/core/input/handler.dart';
+import 'package:conduit_vt/src/core/input/keys.dart';
+import 'package:conduit_vt/src/core/mouse/button.dart';
+import 'package:conduit_vt/src/core/mouse/button_state.dart';
+import 'package:conduit_vt/src/core/mouse/handler.dart';
+import 'package:conduit_vt/src/core/mouse/mode.dart';
+import 'package:conduit_vt/src/core/platform.dart';
+import 'package:conduit_vt/src/core/state.dart';
+import 'package:conduit_vt/src/core/tabs.dart';
+import 'package:conduit_vt/src/utils/ascii.dart';
+import 'package:conduit_vt/src/utils/circular_buffer.dart';
 
 /// [Terminal] is an interface to interact with command line applications. It
 /// translates escape sequences from the application into updates to the
@@ -49,7 +49,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
 
   /// Function that is called when the dimensions of the terminal change.
   void Function(int width, int height, int pixelWidth, int pixelHeight)?
-      onResize;
+  onResize;
 
   /// The [TerminalInputHandler] used by this terminal. [defaultInputHandler] is
   /// used when not specified. User of this class can provide their own
@@ -156,6 +156,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// Number of rows in this terminal.
   @override
   int get viewHeight => _viewHeight;
+
+  /// Horizontal cursor position in the active viewport.
+  int get cursorColumn => _buffer.cursorX;
+
+  /// Vertical cursor position in the active viewport.
+  int get cursorRow => _buffer.cursorY;
+
+  /// Vertical cursor position in the active buffer, including scrollback.
+  int get absoluteCursorRow => _buffer.absoluteCursorY;
 
   @override
   CursorStyle get cursor => _cursorStyle;
@@ -268,11 +277,7 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
   /// - [keyInput]
   /// - [textInput]
   /// - [paste]
-  bool charInput(
-    int charCode, {
-    bool alt = false,
-    bool ctrl = false,
-  }) {
+  bool charInput(int charCode, {bool alt = false, bool ctrl = false}) {
     if (ctrl) {
       // a(97) ~ z(122)
       if (charCode >= Ascii.a && charCode <= Ascii.z) {
@@ -332,13 +337,15 @@ class Terminal with Observable implements TerminalState, EscapeHandler {
     TerminalMouseButtonState buttonState,
     CellOffset position,
   ) {
-    final output = mouseHandler?.call(TerminalMouseEvent(
-      button: button,
-      buttonState: buttonState,
-      position: position,
-      state: this,
-      platform: platform,
-    ));
+    final output = mouseHandler?.call(
+      TerminalMouseEvent(
+        button: button,
+        buttonState: buttonState,
+        position: position,
+        state: this,
+        platform: platform,
+      ),
+    );
     if (output != null) {
       onOutput?.call(output);
       return true;

@@ -4,7 +4,7 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:xterm/src/core/input/handler.dart' as _i2;
+import 'package:conduit_vt/src/core/input/handler.dart' as _i2;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -23,11 +23,10 @@ import 'package:xterm/src/core/input/handler.dart' as _i2;
 class MockTerminalInputHandler extends _i1.Mock
     implements _i2.TerminalInputHandler {
   @override
-  String? call(_i2.TerminalKeyboardEvent? event) => (super.noSuchMethod(
-        Invocation.method(
-          #call,
-          [event],
-        ),
-        returnValueForMissingStub: null,
-      ) as String?);
+  String? call(_i2.TerminalKeyboardEvent? event) =>
+      (super.noSuchMethod(
+            Invocation.method(#call, [event]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
 }
