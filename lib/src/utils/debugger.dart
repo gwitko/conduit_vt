@@ -1,7 +1,7 @@
-import 'package:xterm/src/core/escape/handler.dart';
-import 'package:xterm/src/core/escape/parser.dart';
-import 'package:xterm/src/core/mouse/mode.dart';
-import 'package:xterm/src/base/observable.dart';
+import 'package:conduit_vt/src/core/escape/handler.dart';
+import 'package:conduit_vt/src/core/escape/parser.dart';
+import 'package:conduit_vt/src/core/mouse/mode.dart';
+import 'package:conduit_vt/src/base/observable.dart';
 
 class TerminalCommand {
   TerminalCommand(

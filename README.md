@@ -1,5 +1,5 @@
 
-## xterm.dart
+## conduit_vt
 
 <p>
     <a href="https://github.com/TerminalStudio/xterm.dart/actions/workflows/ci.yml">
@@ -14,7 +14,10 @@
 </p>
 
 
-**xterm.dart** is a fast and fully-featured terminal emulator for Flutter applications, with support for mobile and desktop platforms.
+**conduit_vt** is Conduit's Flutter terminal emulator. It is forked from
+`xterm.dart` and keeps the same core terminal model while adding the small
+mobile/Mosh-oriented APIs Conduit needs, including terminal state accessors and
+transient cell overlays for predictive echo.
 
 > This package requires Flutter version >=3.0.0
 
@@ -62,13 +65,14 @@
 ```yml
 dependencies:
   ...
-  xterm: ^3.2.6
+  conduit_vt:
+    path: ../conduit_vt
 ```
 
 **2.** Create the terminal:
 
 ```dart
-import 'package:xterm/xterm.dart';
+import 'package:conduit_vt/conduit_vt.dart';
 ...
 terminal = Terminal();
 ```
@@ -86,9 +90,21 @@ terminal.onOutput = (output) {
 **3.** Create the view, attach the terminal to the view:
 
 ```dart
-import 'package:xterm/flutter.dart';
+import 'package:conduit_vt/conduit_vt.dart';
 ...
 child: TerminalView(terminal),
+```
+
+Conduit can also paint transient cells over the buffer without mutating
+terminal state:
+
+```dart
+TerminalView(
+  terminal,
+  overlays: const [
+    TerminalCellOverlay(row: 0, column: 0, text: 'l', opacity: 0.62),
+  ],
+);
 ```
 
 **4.** Write something to the terminal:

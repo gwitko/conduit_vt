@@ -1,5 +1,5 @@
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/buffer/range.dart';
+import 'package:conduit_vt/src/core/buffer/cell_offset.dart';
+import 'package:conduit_vt/src/core/buffer/range.dart';
 
 /// A BufferSegment represents a range within a line.
 class BufferSegment {
@@ -17,7 +17,7 @@ class BufferSegment {
   final int? end;
 
   const BufferSegment(this.range, this.line, this.start, this.end)
-      : assert((start != null && end != null) ? start <= end : true);
+    : assert((start != null && end != null) ? start <= end : true);
 
   bool isWithin(CellOffset position) {
     if (position.y != line) {

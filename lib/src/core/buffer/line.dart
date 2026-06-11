@@ -1,11 +1,11 @@
 import 'dart:math' show min;
 import 'dart:typed_data';
 
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/cell.dart';
-import 'package:xterm/src/core/cursor.dart';
-import 'package:xterm/src/utils/circular_buffer.dart';
-import 'package:xterm/src/utils/unicode_v11.dart';
+import 'package:conduit_vt/src/core/buffer/cell_offset.dart';
+import 'package:conduit_vt/src/core/cell.dart';
+import 'package:conduit_vt/src/core/cursor.dart';
+import 'package:conduit_vt/src/utils/circular_buffer.dart';
+import 'package:conduit_vt/src/utils/unicode_v11.dart';
 
 const _cellSize = 4;
 
@@ -18,10 +18,8 @@ const _cellAttributes = 2;
 const _cellContent = 3;
 
 class BufferLine with IndexedItem {
-  BufferLine(
-    this._length, {
-    this.isWrapped = false,
-  }) : _data = Uint32List(_calcCapacity(_length) * _cellSize);
+  BufferLine(this._length, {this.isWrapped = false})
+    : _data = Uint32List(_calcCapacity(_length) * _cellSize);
 
   int _length;
 
@@ -366,8 +364,8 @@ class BufferLine with IndexedItem {
 /// position to each other after mutations to the buffer.
 class CellAnchor {
   CellAnchor(int offset, {BufferLine? owner})
-      : _offset = offset,
-        _owner = owner;
+    : _offset = offset,
+      _owner = owner;
 
   int _offset;
 

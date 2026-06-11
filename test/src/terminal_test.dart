@@ -1,7 +1,18 @@
 import 'package:test/test.dart';
-import 'package:xterm/core.dart';
+import 'package:conduit_vt/core.dart';
 
 void main() {
+  group('Terminal Conduit state accessors', () {
+    test('expose cursor positions for overlay clients', () {
+      final terminal = Terminal()..write('ab');
+
+      expect(terminal.cursorColumn, 2);
+      expect(terminal.cursorRow, 0);
+      expect(terminal.absoluteCursorRow, 0);
+      expect(terminal.isUsingAltBuffer, isFalse);
+    });
+  });
+
   group('Terminal.inputHandler', () {
     test('can be set to null', () {
       final terminal = Terminal(inputHandler: null);
@@ -88,29 +99,15 @@ void main() {
 
   group('Terminal.mouseInput', () {
     test('applys to the main buffer', () {
-      final terminal = Terminal(
-        wordSeparators: {
-          'z'.codeUnitAt(0),
-        },
-      );
+      final terminal = Terminal(wordSeparators: {'z'.codeUnitAt(0)});
 
-      expect(
-        terminal.mainBuffer.wordSeparators,
-        contains('z'.codeUnitAt(0)),
-      );
+      expect(terminal.mainBuffer.wordSeparators, contains('z'.codeUnitAt(0)));
     });
 
     test('applys to the alternate buffer', () {
-      final terminal = Terminal(
-        wordSeparators: {
-          'z'.codeUnitAt(0),
-        },
-      );
+      final terminal = Terminal(wordSeparators: {'z'.codeUnitAt(0)});
 
-      expect(
-        terminal.altBuffer.wordSeparators,
-        contains('z'.codeUnitAt(0)),
-      );
+      expect(terminal.altBuffer.wordSeparators, contains('z'.codeUnitAt(0)));
     });
   });
 

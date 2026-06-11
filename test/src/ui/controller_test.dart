@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xterm/xterm.dart';
+import 'package:conduit_vt/xterm.dart';
 
 void main() {
   group('TerminalController', () {
@@ -8,14 +8,13 @@ void main() {
       final terminal = Terminal();
       final terminalView = TerminalController();
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: TerminalView(
-            terminal,
-            controller: terminalView,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(terminal, controller: terminalView),
           ),
         ),
-      ));
+      );
 
       terminalView.setSelection(
         terminal.buffer.createAnchor(0, 0),
@@ -31,14 +30,13 @@ void main() {
       final terminal = Terminal();
       final terminalView = TerminalController();
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: TerminalView(
-            terminal,
-            controller: terminalView,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(terminal, controller: terminalView),
           ),
         ),
-      ));
+      );
 
       terminalView.setSelection(
         terminal.buffer.createAnchor(0, 0),
@@ -56,14 +54,13 @@ void main() {
       final terminal = Terminal();
       final terminalView = TerminalController();
 
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: TerminalView(
-            terminal,
-            controller: terminalView,
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: TerminalView(terminal, controller: terminalView),
           ),
         ),
-      ));
+      );
 
       terminalView.setSelection(
         terminal.buffer.createAnchor(0, 0),

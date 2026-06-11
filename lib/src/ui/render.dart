@@ -3,19 +3,20 @@ import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/buffer/range.dart';
-import 'package:xterm/src/core/buffer/segment.dart';
-import 'package:xterm/src/core/mouse/button.dart';
-import 'package:xterm/src/core/mouse/button_state.dart';
-import 'package:xterm/src/terminal.dart';
-import 'package:xterm/src/ui/controller.dart';
-import 'package:xterm/src/ui/cursor_type.dart';
-import 'package:xterm/src/ui/painter.dart';
-import 'package:xterm/src/ui/selection_mode.dart';
-import 'package:xterm/src/ui/terminal_size.dart';
-import 'package:xterm/src/ui/terminal_text_style.dart';
-import 'package:xterm/src/ui/terminal_theme.dart';
+import 'package:conduit_vt/src/core/buffer/cell_offset.dart';
+import 'package:conduit_vt/src/core/buffer/range.dart';
+import 'package:conduit_vt/src/core/buffer/segment.dart';
+import 'package:conduit_vt/src/core/mouse/button.dart';
+import 'package:conduit_vt/src/core/mouse/button_state.dart';
+import 'package:conduit_vt/src/terminal.dart';
+import 'package:conduit_vt/src/ui/cell_overlay.dart';
+import 'package:conduit_vt/src/ui/controller.dart';
+import 'package:conduit_vt/src/ui/cursor_type.dart';
+import 'package:conduit_vt/src/ui/painter.dart';
+import 'package:conduit_vt/src/ui/selection_mode.dart';
+import 'package:conduit_vt/src/ui/terminal_size.dart';
+import 'package:conduit_vt/src/ui/terminal_text_style.dart';
+import 'package:conduit_vt/src/ui/terminal_theme.dart';
 
 typedef EditableRectCallback = void Function(Rect rect, Rect caretRect);
 
@@ -29,26 +30,28 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required TerminalStyle textStyle,
     required TextScaler textScaler,
     required TerminalTheme theme,
+    required List<TerminalCellOverlay> overlays,
     required FocusNode focusNode,
     required TerminalCursorType cursorType,
     required bool alwaysShowCursor,
     EditableRectCallback? onEditableRect,
     String? composingText,
-  })  : _terminal = terminal,
-        _controller = controller,
-        _offset = offset,
-        _padding = padding,
-        _autoResize = autoResize,
-        _focusNode = focusNode,
-        _cursorType = cursorType,
-        _alwaysShowCursor = alwaysShowCursor,
-        _onEditableRect = onEditableRect,
-        _composingText = composingText,
-        _painter = TerminalPainter(
-          theme: theme,
-          textStyle: textStyle,
-          textScaler: textScaler,
-        );
+  }) : _terminal = terminal,
+       _controller = controller,
+       _offset = offset,
+       _padding = padding,
+       _autoResize = autoResize,
+       _overlays = overlays,
+       _focusNode = focusNode,
+       _cursorType = cursorType,
+       _alwaysShowCursor = alwaysShowCursor,
+       _onEditableRect = onEditableRect,
+       _composingText = composingText,
+       _painter = TerminalPainter(
+         theme: theme,
+         textStyle: textStyle,
+         textScaler: textScaler,
+       );
 
   Terminal _terminal;
   set terminal(Terminal terminal) {
@@ -107,6 +110,13 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   set theme(TerminalTheme value) {
     if (value == _painter.theme) return;
     _painter.theme = value;
+    markNeedsPaint();
+  }
+
+  List<TerminalCellOverlay> _overlays;
+  set overlays(List<TerminalCellOverlay> value) {
+    if (identical(value, _overlays)) return;
+    _overlays = value;
     markNeedsPaint();
   }
 
@@ -421,6 +431,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       );
     }
 
+    _paintOverlays(canvas, offset, effectFirstLine, effectLastLine);
+
     if (_terminal.buffer.absoluteCursorY >= effectFirstLine &&
         _terminal.buffer.absoluteCursorY <= effectLastLine) {
       if (_isComposingText) {
@@ -454,6 +466,35 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     }
   }
 
+  void _paintOverlays(
+    Canvas canvas,
+    Offset paintOffset,
+    int firstLine,
+    int lastLine,
+  ) {
+    if (_overlays.isEmpty) return;
+
+    for (final overlay in _overlays) {
+      if (overlay.row < firstLine || overlay.row > lastLine) continue;
+      if (overlay.column < 0 || overlay.column >= _terminal.viewWidth) {
+        continue;
+      }
+
+      final offset = paintOffset.translate(
+        overlay.column * _painter.cellSize.width,
+        overlay.row * _painter.cellSize.height + _lineOffset,
+      );
+      _painter.paintOverlayText(
+        canvas,
+        offset,
+        text: overlay.text,
+        foreground: overlay.foreground,
+        background: overlay.background,
+        opacity: overlay.opacity,
+      );
+    }
+  }
+
   /// Paints the text that is currently being composed in IME to [canvas] at
   /// [offset]. [offset] is usually the cursor position.
   void _paintComposingText(Canvas canvas, Offset offset) {
@@ -474,9 +515,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
       _painter.cellSize.height,
       PlaceholderAlignment.middle,
     );
-    builder.pushStyle(
-      style.getTextStyle(textScaler: _painter.textScaler),
-    );
+    builder.pushStyle(style.getTextStyle(textScaler: _painter.textScaler));
     builder.addText(composingText);
 
     final paragraph = builder.build();

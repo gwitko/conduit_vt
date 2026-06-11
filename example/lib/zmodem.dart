@@ -6,7 +6,7 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart' as path;
-import 'package:xterm/xterm.dart';
+import 'package:conduit_vt/xterm.dart';
 
 const host = 'localhost';
 const port = 22;
@@ -164,8 +164,10 @@ class _MyHomePageState extends State<MyHomePage> {
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
         middle: Text(title),
-        backgroundColor:
-            CupertinoTheme.of(context).barBackgroundColor.withOpacity(0.5),
+        backgroundColor: CupertinoTheme.of(context)
+            .barBackgroundColor
+            .withValues(
+                alpha: CupertinoTheme.of(context).barBackgroundColor.a * 0.5),
       ),
       child: TerminalView(terminal),
     );

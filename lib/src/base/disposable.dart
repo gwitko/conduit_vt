@@ -1,4 +1,4 @@
-import 'package:xterm/src/base/event.dart';
+import 'package:conduit_vt/src/base/event.dart';
 
 mixin Disposable {
   final _disposables = <Disposable>[];

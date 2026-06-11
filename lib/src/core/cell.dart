@@ -1,4 +1,4 @@
-import 'package:xterm/src/utils/hash_values.dart';
+import 'package:conduit_vt/src/utils/hash_values.dart';
 
 class CellData {
   CellData({
@@ -9,12 +9,7 @@ class CellData {
   });
 
   factory CellData.empty() {
-    return CellData(
-      foreground: 0,
-      background: 0,
-      flags: 0,
-      content: 0,
-    );
+    return CellData(foreground: 0, background: 0, flags: 0, content: 0);
   }
 
   int foreground;

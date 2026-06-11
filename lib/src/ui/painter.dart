@@ -1,9 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/painting.dart';
 
-import 'package:xterm/src/ui/palette_builder.dart';
-import 'package:xterm/src/ui/paragraph_cache.dart';
-import 'package:xterm/xterm.dart';
+import 'package:conduit_vt/src/ui/palette_builder.dart';
+import 'package:conduit_vt/src/ui/paragraph_cache.dart';
+import 'package:conduit_vt/xterm.dart';
 
 /// Encapsulates the logic for painting various terminal elements.
 class TerminalPainter {
@@ -58,9 +58,7 @@ class TerminalPainter {
 
     final textStyle = _textStyle.toTextStyle();
     final builder = ParagraphBuilder(textStyle.getParagraphStyle());
-    builder.pushStyle(
-      textStyle.getTextStyle(textScaler: _textScaler),
-    );
+    builder.pushStyle(textStyle.getTextStyle(textScaler: _textScaler));
     builder.addText(test);
 
     final paragraph = builder.build();
@@ -124,26 +122,21 @@ class TerminalPainter {
 
   @pragma('vm:prefer-inline')
   void paintHighlight(Canvas canvas, Offset offset, int length, Color color) {
-    final endOffset =
-        offset.translate(length * _cellSize.width, _cellSize.height);
+    final endOffset = offset.translate(
+      length * _cellSize.width,
+      _cellSize.height,
+    );
 
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1;
 
-    canvas.drawRect(
-      Rect.fromPoints(offset, endOffset),
-      paint,
-    );
+    canvas.drawRect(Rect.fromPoints(offset, endOffset), paint);
   }
 
   /// Paints [line] to [canvas] at [offset]. The x offset of [offset] is usually
   /// 0, and the y offset is the top of the line.
-  void paintLine(
-    Canvas canvas,
-    Offset offset,
-    BufferLine line,
-  ) {
+  void paintLine(Canvas canvas, Offset offset, BufferLine line) {
     final cellData = CellData.empty();
     final cellWidth = _cellSize.width;
 
@@ -159,6 +152,41 @@ class TerminalPainter {
         i++;
       }
     }
+  }
+
+  void paintOverlayText(
+    Canvas canvas,
+    Offset offset, {
+    required String text,
+    Color? foreground,
+    Color? background,
+    double opacity = 1,
+  }) {
+    if (text.isEmpty) return;
+
+    final effectiveOpacity = opacity.clamp(0.0, 1.0);
+    final backgroundColor = background;
+    if (backgroundColor != null) {
+      final paint = Paint()
+        ..color = backgroundColor.withValues(
+          alpha: backgroundColor.a * effectiveOpacity,
+        );
+      canvas.drawRect(offset & _cellSize, paint);
+    }
+
+    final style = _textStyle.toTextStyle(
+      color: (foreground ?? _theme.foreground).withValues(
+        alpha: effectiveOpacity,
+      ),
+    );
+    final builder = ParagraphBuilder(style.getParagraphStyle())
+      ..pushStyle(style.getTextStyle(textScaler: _textScaler))
+      ..addText(text);
+    final paragraph = builder.build()
+      ..layout(ParagraphConstraints(width: _cellSize.width));
+
+    canvas.drawParagraph(paragraph, offset);
+    paragraph.dispose();
   }
 
   @pragma('vm:prefer-inline')
@@ -185,7 +213,7 @@ class TerminalPainter {
           : resolveBackgroundColor(cellData.background);
 
       if (cellData.flags & CellFlags.faint != 0) {
-        color = color.withOpacity(0.5);
+        color = color.withValues(alpha: color.a * 0.5);
       }
 
       final style = _textStyle.toTextStyle(

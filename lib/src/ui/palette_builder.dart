@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:xterm/src/ui/terminal_theme.dart';
-import 'package:xterm/src/utils/lookup_table.dart';
+import 'package:conduit_vt/src/ui/terminal_theme.dart';
+import 'package:conduit_vt/src/utils/lookup_table.dart';
 
 class PaletteBuilder {
   final TerminalTheme theme;
@@ -8,11 +8,7 @@ class PaletteBuilder {
   PaletteBuilder(this.theme);
 
   List<Color> build() {
-    return List<Color>.generate(
-      256,
-      paletteColor,
-      growable: false,
-    );
+    return List<Color>.generate(256, paletteColor, growable: false);
   }
 
   /// https://en.wikipedia.org/wiki/ANSI_escape_code#8-bit

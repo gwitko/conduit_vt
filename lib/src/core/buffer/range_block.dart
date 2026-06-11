@@ -1,8 +1,8 @@
 import 'dart:math';
 
-import 'package:xterm/src/core/buffer/cell_offset.dart';
-import 'package:xterm/src/core/buffer/range.dart';
-import 'package:xterm/src/core/buffer/segment.dart';
+import 'package:conduit_vt/src/core/buffer/cell_offset.dart';
+import 'package:conduit_vt/src/core/buffer/range.dart';
+import 'package:conduit_vt/src/core/buffer/segment.dart';
 
 class BufferRangeBlock extends BufferRange {
   BufferRangeBlock(super.begin, super.end);

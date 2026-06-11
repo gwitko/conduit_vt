@@ -1,4 +1,4 @@
-import 'package:xterm/src/terminal.dart';
+import 'package:conduit_vt/src/terminal.dart';
 
 void main(List<String> args) async {
   final lines = 1000;

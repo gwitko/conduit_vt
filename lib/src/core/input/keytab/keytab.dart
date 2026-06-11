@@ -1,14 +1,11 @@
-import 'package:xterm/src/core/input/keys.dart';
-import 'package:xterm/src/core/input/keytab/keytab_default.dart';
-import 'package:xterm/src/core/input/keytab/keytab_parse.dart';
-import 'package:xterm/src/core/input/keytab/keytab_record.dart';
-import 'package:xterm/src/core/input/keytab/keytab_token.dart';
+import 'package:conduit_vt/src/core/input/keys.dart';
+import 'package:conduit_vt/src/core/input/keytab/keytab_default.dart';
+import 'package:conduit_vt/src/core/input/keytab/keytab_parse.dart';
+import 'package:conduit_vt/src/core/input/keytab/keytab_record.dart';
+import 'package:conduit_vt/src/core/input/keytab/keytab_token.dart';
 
 class Keytab {
-  Keytab({
-    required this.name,
-    required this.records,
-  });
+  Keytab({required this.name, required this.records});
 
   factory Keytab.parse(String source) {
     final tokens = tokenize(source).toList();
