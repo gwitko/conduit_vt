@@ -1,141 +1,72 @@
+# conduit_vt
 
-## conduit_vt
-
-<p>
-    <a href="https://github.com/TerminalStudio/xterm.dart/actions/workflows/ci.yml">
-      <img alt="Actions" src="https://github.com/TerminalStudio/xterm.dart/actions/workflows/ci.yml/badge.svg">
-    </a>
-    <a href="https://pub.dev/packages/xterm">
-      <img alt="Package version" src="https://img.shields.io/pub/v/xterm?color=blue&include_prereleases">
-    </a>
-    <img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/TerminalStudio/xterm.dart">
-    <img alt="GitHub issues" src="https://img.shields.io/github/issues-raw/TerminalStudio/xterm.dart">
-    <img alt="GitHub pull requests" src="https://img.shields.io/github/issues-pr/TerminalStudio/xterm.dart">
-</p>
-
-
-**conduit_vt** is Conduit's Flutter terminal emulator. It is forked from
-`xterm.dart` and keeps the same core terminal model while adding the small
-mobile/Mosh-oriented APIs Conduit needs, including terminal state accessors and
+**conduit_vt** is [Conduit](https://github.com/gwitko/Conduit)'s Flutter
+terminal emulator. It is a fork of [xterm.dart](https://github.com/TerminalStudio/xterm.dart)
+that keeps the same terminal core while adding the small mobile- and
+Mosh-oriented APIs Conduit needs, such as terminal state accessors and
 transient cell overlays for predictive echo.
 
-> This package requires Flutter version >=3.0.0
+This package is maintained for Conduit and is consumed as a git dependency. It
+is not published to pub.dev and is not intended as a drop-in replacement for
+`xterm`. If you want a general-purpose Flutter terminal, use the upstream
+[`xterm`](https://pub.dev/packages/xterm) package instead.
 
-## Screenshots
+Requires Flutter `>=3.19.0`.
 
-<table>
-  <tr>
-    <td>
-		<img width="200px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/demo-shell.png">
-    </td>
-    <td>
-       <img width="200px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/demo-vim.png">
-    </td>
-  <tr>
-  </tr>
-    <td>
-       <img width="200px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/demo-htop.png">
-    </td>
-    <td>
-       <img width="200px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/demo-dialog.png">
-    </td>
-  </tr>
-</table>
+## What this fork adds
 
-## Features
+- Terminal state accessors used to position predictive overlays (absolute
+  cursor row, view metrics, alternate-buffer state, cell code points).
+- `TerminalCellOverlay`: transient cells painted over the buffer without
+  mutating terminal state, used for predictive local echo. Overlays support an
+  `erase` flag for predicted deletions.
 
-- 📦 **Works out of the box** No special configuration required.
-- 🚀 **Fast** Renders at 60fps.
-- 😀 **Wide character support** Supports CJK and emojis.
-- ✂️ **Customizable** 
-- ✔ **Frontend independent**: The terminal core can work without flutter frontend.
+## Usage
 
-**What's new in 3.0.0:**
-
-- 📱 Enhanced support for **mobile** platforms.
-- ⌨️ Integrates with Flutter's **shortcut** system.
-- 🎨 Allows changing **theme** at runtime.
-- 💪 Better **performance**. No tree rebuilds anymore.
-- 🈂️ Works with **IMEs**.
-
-## Getting Started
-
-**1.** Add this to your package's pubspec.yaml file:
-
-```yml
-dependencies:
-  ...
-  conduit_vt:
-    path: ../conduit_vt
-```
-
-**2.** Create the terminal:
+Create a terminal and attach it to a view:
 
 ```dart
 import 'package:conduit_vt/conduit_vt.dart';
-...
-terminal = Terminal();
-```
 
-Listen to user interaction with the terminal by simply adding a `onOutput` callback:
-
-```dart
-terminal = Terminal();
+final terminal = Terminal();
 
 terminal.onOutput = (output) {
-  print('output: $output');
-}
+  // forward user input to the transport (SSH, Mosh, ...)
+};
+
+// in a widget tree:
+TerminalView(terminal);
+
+// write received bytes:
+terminal.write('Hello, world!\r\n');
 ```
 
-**3.** Create the view, attach the terminal to the view:
-
-```dart
-import 'package:conduit_vt/conduit_vt.dart';
-...
-child: TerminalView(terminal),
-```
-
-Conduit can also paint transient cells over the buffer without mutating
-terminal state:
+Paint predictive cells over the buffer without changing terminal state:
 
 ```dart
 TerminalView(
   terminal,
   overlays: const [
     TerminalCellOverlay(row: 0, column: 0, text: 'l', opacity: 0.62),
+    TerminalCellOverlay(row: 0, column: 1, text: '', erase: true),
   ],
 );
 ```
 
-**4.** Write something to the terminal:
-
-```dart
-terminal.write('Hello, world!');
-```
-
-**Done!**
-
-## More examples
-
-- Write a simple terminal in ~100 lines of code:
-  https://github.com/TerminalStudio/xterm.dart/blob/master/example/lib/main.dart
-
-- Write a SSH client in ~100 lines of code with [dartssh2]:
-  https://github.com/TerminalStudio/xterm.dart/blob/master/example/lib/ssh.dart
-  
-  <img width="400px" src="https://raw.githubusercontent.com/TerminalStudio/xterm.dart/master/media/example-ssh.png">
-
-For a complete project built with xterm.dart, check out [TerminalStudio].
-
-## Features and bugs
-
-Please file feature requests and bugs at the [issue tracker](https://github.com/TerminalStudio/xterm.dart/issues).
-
-Contributions are always welcome!
+See `example/` for a runnable terminal.
 
 ## License
 
-This project is licensed under an MIT license.
+MIT. This is a fork of xterm.dart; the original work is
 
-[dartssh2]: https://pub.dev/packages/dartssh2
-[TerminalStudio]: https://github.com/TerminalStudio/studio
+```
+Copyright (c) 2020 xuty
+```
+
+Fork modifications are
+
+```
+Copyright (c) 2026 gwitko
+```
+
+The full license text, covering both, is in [`LICENSE`](LICENSE).

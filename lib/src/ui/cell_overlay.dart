@@ -12,6 +12,7 @@ class TerminalCellOverlay {
     this.foreground,
     this.background,
     this.opacity = 1,
+    this.erase = false,
   });
 
   final int row;
@@ -20,4 +21,5 @@ class TerminalCellOverlay {
   final Color? foreground;
   final Color? background;
   final double opacity;
+  final bool erase;
 }

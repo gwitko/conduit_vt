@@ -36,22 +36,22 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
     required bool alwaysShowCursor,
     EditableRectCallback? onEditableRect,
     String? composingText,
-  }) : _terminal = terminal,
-       _controller = controller,
-       _offset = offset,
-       _padding = padding,
-       _autoResize = autoResize,
-       _overlays = overlays,
-       _focusNode = focusNode,
-       _cursorType = cursorType,
-       _alwaysShowCursor = alwaysShowCursor,
-       _onEditableRect = onEditableRect,
-       _composingText = composingText,
-       _painter = TerminalPainter(
-         theme: theme,
-         textStyle: textStyle,
-         textScaler: textScaler,
-       );
+  })  : _terminal = terminal,
+        _controller = controller,
+        _offset = offset,
+        _padding = padding,
+        _autoResize = autoResize,
+        _overlays = overlays,
+        _focusNode = focusNode,
+        _cursorType = cursorType,
+        _alwaysShowCursor = alwaysShowCursor,
+        _onEditableRect = onEditableRect,
+        _composingText = composingText,
+        _painter = TerminalPainter(
+          theme: theme,
+          textStyle: textStyle,
+          textScaler: textScaler,
+        );
 
   Terminal _terminal;
   set terminal(Terminal terminal) {
@@ -392,9 +392,8 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   /// The offset of the cursor from the top left corner of this render object.
   Offset get cursorOffset {
-    return Offset(
-      _terminal.buffer.cursorX * _painter.cellSize.width,
-      _terminal.buffer.absoluteCursorY * _painter.cellSize.height + _lineOffset,
+    return getOffset(
+      CellOffset(_terminal.buffer.cursorX, _terminal.buffer.absoluteCursorY),
     );
   }
 
@@ -491,6 +490,7 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
         foreground: overlay.foreground,
         background: overlay.background,
         opacity: overlay.opacity,
+        erase: overlay.erase,
       );
     }
   }

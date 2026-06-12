@@ -107,14 +107,17 @@ class TerminalPainter {
         return;
       case TerminalCursorType.underline:
         return canvas.drawLine(
-          Offset(offset.dx, _cellSize.height - 1),
-          Offset(offset.dx + _cellSize.width, _cellSize.height - 1),
+          Offset(offset.dx, offset.dy + _cellSize.height - 1),
+          Offset(
+            offset.dx + _cellSize.width,
+            offset.dy + _cellSize.height - 1,
+          ),
           paint,
         );
       case TerminalCursorType.verticalBar:
         return canvas.drawLine(
-          Offset(offset.dx, 0),
-          Offset(offset.dx, _cellSize.height),
+          offset,
+          Offset(offset.dx, offset.dy + _cellSize.height),
           paint,
         );
     }
@@ -161,11 +164,12 @@ class TerminalPainter {
     Color? foreground,
     Color? background,
     double opacity = 1,
+    bool erase = false,
   }) {
-    if (text.isEmpty) return;
+    if (text.isEmpty && !erase) return;
 
     final effectiveOpacity = opacity.clamp(0.0, 1.0);
-    final backgroundColor = background;
+    final backgroundColor = background ?? (erase ? _theme.background : null);
     if (backgroundColor != null) {
       final paint = Paint()
         ..color = backgroundColor.withValues(
@@ -173,6 +177,8 @@ class TerminalPainter {
         );
       canvas.drawRect(offset & _cellSize, paint);
     }
+
+    if (text.isEmpty) return;
 
     final style = _textStyle.toTextStyle(
       color: (foreground ?? _theme.foreground).withValues(
