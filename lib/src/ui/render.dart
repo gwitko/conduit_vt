@@ -1,4 +1,4 @@
-import 'dart:math' show max;
+import 'dart:math' show max, min;
 import 'dart:ui';
 
 import 'package:flutter/rendering.dart';
@@ -399,6 +399,109 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   Size get cellSize {
     return _painter.cellSize;
+  }
+
+  Rect? get globalSelectionRect {
+    final selection = _controller.selection;
+    if (selection == null) {
+      return null;
+    }
+
+    final cellSize = _painter.cellSize;
+    final lineCount = _terminal.buffer.lines.length;
+
+    double? left, top, right, bottom;
+    for (final segment in selection.toSegments()) {
+      if (segment.line >= lineCount) {
+        break;
+      }
+
+      final start = segment.start ?? 0;
+      final end = segment.end ?? _terminal.viewWidth;
+      final segmentLeft = start * cellSize.width;
+      final segmentRight = end * cellSize.width;
+      final segmentTop = segment.line * cellSize.height + _lineOffset;
+      final segmentBottom = segmentTop + cellSize.height;
+
+      left = left == null ? segmentLeft : min(left, segmentLeft);
+      right = right == null ? segmentRight : max(right, segmentRight);
+      top = top == null ? segmentTop : min(top, segmentTop);
+      bottom = bottom == null ? segmentBottom : max(bottom, segmentBottom);
+    }
+
+    if (left == null) {
+      return null;
+    }
+
+    final topLeft = localToGlobal(Offset(left, top!));
+    final bottomRight = localToGlobal(Offset(right!, bottom!));
+    return Rect.fromPoints(topLeft, bottomRight);
+  }
+
+  List<BufferSegment>? _selectionSegments() {
+    final selection = _controller.selection;
+    if (selection == null) {
+      return null;
+    }
+    final lineCount = _terminal.buffer.lines.length;
+    final segments = selection.normalized
+        .toSegments()
+        .where((segment) => segment.line < lineCount)
+        .toList();
+    return segments.isEmpty ? null : segments;
+  }
+
+  Offset? get selectionStartHandleOffset {
+    final segments = _selectionSegments();
+    if (segments == null) {
+      return null;
+    }
+    final segment = segments.first;
+    final local = getOffset(CellOffset(segment.start ?? 0, segment.line));
+    return localToGlobal(local.translate(0, _painter.cellSize.height));
+  }
+
+  Offset? get selectionEndHandleOffset {
+    final segments = _selectionSegments();
+    if (segments == null) {
+      return null;
+    }
+    final segment = segments.last;
+    final local = getOffset(
+      CellOffset(segment.end ?? _terminal.viewWidth, segment.line),
+    );
+    return localToGlobal(local.translate(0, _painter.cellSize.height));
+  }
+
+  void updateSelectionStart(Offset globalPosition) {
+    final selection = _controller.selection?.normalized;
+    if (selection == null) {
+      return;
+    }
+    final cell = getCellOffset(globalToLocal(globalPosition));
+    if (cell.isAfterOrSame(selection.end)) {
+      return;
+    }
+    _controller.setSelection(
+      _terminal.buffer.createAnchorFromOffset(cell),
+      _terminal.buffer.createAnchorFromOffset(selection.end),
+    );
+  }
+
+  void updateSelectionEnd(Offset globalPosition) {
+    final selection = _controller.selection?.normalized;
+    if (selection == null) {
+      return;
+    }
+    final raw = getCellOffset(globalToLocal(globalPosition));
+    final cell = CellOffset(raw.x + 1, raw.y);
+    if (cell.isBeforeOrSame(selection.begin)) {
+      return;
+    }
+    _controller.setSelection(
+      _terminal.buffer.createAnchorFromOffset(selection.begin),
+      _terminal.buffer.createAnchorFromOffset(cell),
+    );
   }
 
   @override
