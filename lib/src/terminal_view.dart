@@ -1,4 +1,5 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -167,6 +168,20 @@ class TerminalViewState extends State<TerminalView> {
 
   late ScrollController _scrollController;
 
+  final _contextMenuController = ContextMenuController();
+
+  Timer? _selectionToolbarTimer;
+
+  bool _selectionClearedByTapDown = false;
+
+  final _selectionHandlesController = OverlayPortalController();
+
+  final _selectionRevision = ValueNotifier<int>(0);
+
+  bool _draggingHandle = false;
+
+  Offset? _magnifierFocalPoint;
+
   RenderTerminal get renderTerminal =>
       _viewportKey.currentContext!.findRenderObject() as RenderTerminal;
 
@@ -174,6 +189,7 @@ class TerminalViewState extends State<TerminalView> {
   void initState() {
     _focusNode = widget.focusNode ?? FocusNode();
     _controller = widget.controller ?? TerminalController();
+    _controller.addListener(_handleSelectionChanged);
     _scrollController = widget.scrollController ?? ScrollController();
     _shortcutManager = ShortcutManager(
       shortcuts: widget.shortcuts ?? defaultTerminalShortcuts,
@@ -190,10 +206,12 @@ class TerminalViewState extends State<TerminalView> {
       _focusNode = widget.focusNode ?? FocusNode();
     }
     if (oldWidget.controller != widget.controller) {
+      _controller.removeListener(_handleSelectionChanged);
       if (oldWidget.controller == null) {
         _controller.dispose();
       }
       _controller = widget.controller ?? TerminalController();
+      _controller.addListener(_handleSelectionChanged);
     }
     if (oldWidget.scrollController != widget.scrollController) {
       if (oldWidget.scrollController == null) {
@@ -207,6 +225,10 @@ class TerminalViewState extends State<TerminalView> {
 
   @override
   void dispose() {
+    _selectionToolbarTimer?.cancel();
+    _hideSelectionToolbar();
+    _selectionRevision.dispose();
+    _controller.removeListener(_handleSelectionChanged);
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
@@ -303,7 +325,7 @@ class TerminalViewState extends State<TerminalView> {
     child = TerminalGestureHandler(
       terminalView: this,
       terminalController: _controller,
-      onTapUp: _onTapUp,
+      onSingleTapUp: _onTapUp,
       onTapDown: _onTapDown,
       onSecondaryTapDown:
           widget.onSecondaryTapDown != null ? _onSecondaryTapDown : null,
@@ -323,7 +345,11 @@ class TerminalViewState extends State<TerminalView> {
       child: child,
     );
 
-    return child;
+    return OverlayPortal(
+      controller: _selectionHandlesController,
+      overlayChildBuilder: _buildSelectionHandles,
+      child: child,
+    );
   }
 
   void requestKeyboard() {
@@ -346,18 +372,225 @@ class TerminalViewState extends State<TerminalView> {
   void _onTapUp(TapUpDetails details) {
     final offset = renderTerminal.getCellOffset(details.localPosition);
     widget.onTapUp?.call(details, offset);
+
+    if (_selectionClearedByTapDown) {
+      _selectionClearedByTapDown = false;
+      return;
+    }
+
+    if (!widget.hardwareKeyboardOnly) {
+      _customTextEditKey.currentState?.requestKeyboard();
+    } else {
+      _focusNode.requestFocus();
+    }
   }
 
   void _onTapDown(_) {
     if (_controller.selection != null) {
       _controller.clearSelection();
+      _selectionClearedByTapDown = true;
     } else {
-      if (!widget.hardwareKeyboardOnly) {
-        _customTextEditKey.currentState?.requestKeyboard();
-      } else {
-        _focusNode.requestFocus();
-      }
+      _selectionClearedByTapDown = false;
     }
+  }
+
+  void _handleSelectionChanged() {
+    if (_controller.selection == null) {
+      _selectionToolbarTimer?.cancel();
+      _hideSelectionToolbar();
+      _draggingHandle = false;
+      _magnifierFocalPoint = null;
+      if (_selectionHandlesController.isShowing) {
+        _selectionHandlesController.hide();
+      }
+      _bumpSelectionRevision();
+      return;
+    }
+
+    if (!_selectionHandlesController.isShowing) {
+      _selectionHandlesController.show();
+    }
+    _bumpSelectionRevision();
+    _hideSelectionToolbar();
+    _selectionToolbarTimer?.cancel();
+    _selectionToolbarTimer = Timer(
+      const Duration(milliseconds: 150),
+      _showSelectionToolbar,
+    );
+  }
+
+  void _bumpSelectionRevision() {
+    _selectionRevision.value++;
+  }
+
+  Widget _buildSelectionHandles(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: _selectionRevision,
+      builder: (context, _, __) {
+        if (_viewportKey.currentContext == null ||
+            _controller.selection == null) {
+          return const SizedBox.shrink();
+        }
+
+        final render = renderTerminal;
+        final start = render.selectionStartHandleOffset;
+        final end = render.selectionEndHandleOffset;
+        if (start == null || end == null) {
+          return const SizedBox.shrink();
+        }
+
+        return Stack(
+          children: [
+            _buildHandle(start, isStart: true),
+            _buildHandle(end, isStart: false),
+            if (_draggingHandle && _magnifierFocalPoint != null)
+              _buildMagnifier(_magnifierFocalPoint!),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildHandle(Offset corner, {required bool isStart}) {
+    const visual = 18.0;
+    const touch = 72.0;
+    final center = corner.translate(0, visual / 2 + 2);
+    return Positioned(
+      left: center.dx - touch / 2,
+      top: center.dy - touch / 2,
+      width: touch,
+      height: touch,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (_) => _onHandlePanStart(corner),
+        onPanUpdate: (details) =>
+            _onHandlePanUpdate(details.globalPosition, isStart: isStart),
+        onPanEnd: (_) => _onHandlePanEnd(),
+        child: Center(
+          child: Container(
+            width: visual,
+            height: visual,
+            decoration: BoxDecoration(
+              color: widget.theme.cursor,
+              shape: BoxShape.circle,
+              boxShadow: const [
+                BoxShadow(color: Color(0x55000000), blurRadius: 2),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMagnifier(Offset focalPoint) {
+    const size = Size(110, 56);
+    const gap = 28.0;
+    return Positioned(
+      left: focalPoint.dx - size.width / 2,
+      top: focalPoint.dy - size.height - gap,
+      child: RawMagnifier(
+        size: size,
+        magnificationScale: 1.6,
+        focalPointOffset: Offset(0, size.height / 2 + gap),
+        decoration: MagnifierDecoration(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+            side: BorderSide(color: widget.theme.cursor, width: 1),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _onHandlePanStart(Offset corner) {
+    _draggingHandle = true;
+    _magnifierFocalPoint = corner;
+    _hideSelectionToolbar();
+    _selectionToolbarTimer?.cancel();
+    _bumpSelectionRevision();
+  }
+
+  void _onHandlePanUpdate(Offset globalPosition, {required bool isStart}) {
+    _magnifierFocalPoint = globalPosition;
+    if (isStart) {
+      renderTerminal.updateSelectionStart(globalPosition);
+    } else {
+      renderTerminal.updateSelectionEnd(globalPosition);
+    }
+    _bumpSelectionRevision();
+  }
+
+  void _onHandlePanEnd() {
+    _draggingHandle = false;
+    _magnifierFocalPoint = null;
+    _bumpSelectionRevision();
+    _selectionToolbarTimer?.cancel();
+    _selectionToolbarTimer = Timer(
+      const Duration(milliseconds: 150),
+      _showSelectionToolbar,
+    );
+  }
+
+  void _showSelectionToolbar() {
+    if (!mounted ||
+        _controller.selection == null ||
+        _viewportKey.currentContext == null) {
+      return;
+    }
+
+    final rect = renderTerminal.globalSelectionRect;
+    if (rect == null) {
+      return;
+    }
+
+    final anchors = TextSelectionToolbarAnchors(
+      primaryAnchor: rect.topCenter,
+      secondaryAnchor: rect.bottomCenter,
+    );
+
+    _contextMenuController.show(
+      context: context,
+      contextMenuBuilder: (context) {
+        return AdaptiveTextSelectionToolbar.buttonItems(
+          anchors: anchors,
+          buttonItems: [
+            ContextMenuButtonItem(
+              type: ContextMenuButtonType.copy,
+              onPressed: _copySelection,
+            ),
+            ContextMenuButtonItem(
+              type: ContextMenuButtonType.selectAll,
+              onPressed: _selectAll,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _hideSelectionToolbar() {
+    if (_contextMenuController.isShown) {
+      _contextMenuController.remove();
+    }
+  }
+
+  void _copySelection() {
+    final selection = _controller.selection;
+    if (selection != null) {
+      final text = widget.terminal.buffer.getText(selection);
+      Clipboard.setData(ClipboardData(text: text));
+    }
+    _hideSelectionToolbar();
+    _controller.clearSelection();
+  }
+
+  void _selectAll() {
+    final buffer = widget.terminal.buffer;
+    _controller.setSelection(
+      buffer.createAnchor(0, buffer.height - widget.terminal.viewHeight),
+      buffer.createAnchor(widget.terminal.viewWidth, buffer.height - 1),
+    );
   }
 
   void _onSecondaryTapDown(TapDownDetails details) {
