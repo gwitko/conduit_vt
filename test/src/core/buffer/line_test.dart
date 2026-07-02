@@ -39,6 +39,33 @@ void main() {
       terminal.write('Hello World');
       expect(terminal.buffer.lines[0].getText(5, 0), '');
     });
+
+    test('preserves interior blank cells as spaces', () {
+      // A full-screen app can position the cursor and leave gap cells erased
+      // (codePoint 0) rather than printing literal spaces. Those gaps must be
+      // copied as spaces so words are not collapsed together.
+      final line = BufferLine(10);
+      line.setCodePoint(0, 'A'.codeUnitAt(0));
+      line.setCodePoint(1, 'B'.codeUnitAt(0));
+      line.setCodePoint(4, 'C'.codeUnitAt(0));
+      line.setCodePoint(5, 'D'.codeUnitAt(0));
+      expect(line.getText(), 'AB  CD');
+    });
+
+    test('trims trailing blank cells', () {
+      final line = BufferLine(10);
+      final text = 'AB';
+      for (var i = 0; i < text.length; i++) {
+        line.setCodePoint(i, text.codeUnitAt(i));
+      }
+      expect(line.getText(), 'AB');
+    });
+
+    test('does not insert a space after a wide character', () {
+      final terminal = Terminal();
+      terminal.write('😀A');
+      expect(terminal.buffer.lines[0].getText(), '😀A');
+    });
   });
 
   group('BufferLine.getTrimmedLength()', () {
