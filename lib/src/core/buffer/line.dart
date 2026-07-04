@@ -139,7 +139,8 @@ class BufferLine with IndexedItem {
     }
 
     // reset cell one to the right if end is second cell of a wide char
-    if (end < _length && getWidth(end - 1) == 2) {
+    // (end == 0 has no cell to the left, and getWidth(-1) would throw)
+    if (end > 0 && end < _length && getWidth(end - 1) == 2) {
       eraseCell(end - 1, style);
     }
 
