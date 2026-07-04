@@ -329,12 +329,31 @@ class BufferLine with IndexedItem {
       to = _length;
     }
 
-    final builder = StringBuffer();
+    // Last cell in the range that actually has content. Trailing blank cells
+    // (erased / never-written columns out to the right margin) are not copied,
+    // matching how terminals trim trailing whitespace on a line.
+    var lastNonBlank = from - 1;
     for (var i = from; i < to; i++) {
+      if (getCodePoint(i) != 0) {
+        lastNonBlank = i;
+      }
+    }
+
+    final builder = StringBuffer();
+    for (var i = from; i <= lastNonBlank; i++) {
       final codePoint = getCodePoint(i);
       final width = getWidth(i);
       if (codePoint != 0 && i + width <= to) {
         builder.writeCharCode(codePoint);
+      } else if (i > 0 && getWidth(i - 1) == 2) {
+        // Second cell of a wide (double-width) character: the glyph was already
+        // emitted with the first cell, so skip this placeholder.
+      } else {
+        // An erased or never-written interior cell — e.g. a gap produced by a
+        // full-screen app positioning the cursor instead of printing spaces.
+        // Emit a space so copied text keeps its on-screen spacing rather than
+        // collapsing separate words together.
+        builder.writeCharCode(0x20);
       }
     }
 
