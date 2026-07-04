@@ -175,11 +175,18 @@ class RenderTerminal extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
 
   void _onTerminalChange() {
     markNeedsLayout();
+    // This render object is a repaint boundary, so a layout that resolves to
+    // the same size (e.g. switching between two same-size alt-screen buffers)
+    // would otherwise reuse the cached layer and never repaint. The visible
+    // cell contents changed, so always repaint.
+    markNeedsPaint();
     _notifyEditableRect();
   }
 
   void _onControllerUpdate() {
     markNeedsLayout();
+    // Selection highlight is a visual change; repaint even if layout is stable.
+    markNeedsPaint();
   }
 
   @override
