@@ -407,7 +407,14 @@ class EscapeParser {
   /// `ESC [ [ Ps ] m` Select Graphic Rendition (SGR)
   ///
   /// https://terminalguide.namepad.de/seq/csi_sm/
+  ///
+  /// Prefixed variants like `ESC [ > Pp ; Pv m` (XTMODKEYS) are not SGR and
+  /// must not alter the cursor style.
   void _csiHandleSgr() {
+    if (_csi.prefix != null) {
+      return handler.unknownCSI(_csi.finalByte);
+    }
+
     final params = _csi.params;
 
     if (params.isEmpty) {
@@ -637,6 +644,10 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_sr/
   void _csiHandleSetMargins() {
+    if (_csi.prefix != null) {
+      return handler.unknownCSI(_csi.finalByte);
+    }
+
     var top = 1;
     int? bottom;
 
@@ -889,6 +900,10 @@ class EscapeParser {
   ///
   /// https://terminalguide.namepad.de/seq/csi_cs/
   void _csiHandleScrollUp() {
+    if (_csi.prefix != null) {
+      return handler.unknownCSI(_csi.finalByte);
+    }
+
     var amount = 1;
 
     if (_csi.params.isNotEmpty) {
